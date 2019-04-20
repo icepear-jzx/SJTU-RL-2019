@@ -18,7 +18,7 @@ class Grid:
         self.reward = -1.0
         self.policy = self.action
         self.gamma = 0.5
-    
+
     def updateValue(self):
         self.value = self.next_value
         self.sum = self.next_sum
@@ -39,26 +39,26 @@ class Grid:
                 max_value = gridworld[next_x][next_y].value
 
     def nextGrid(self):
-        i = randint(0,len(self.action)-1)
+        i = randint(0, len(self.action)-1)
         next_x = self.x + self.action[i][0]
         next_y = self.y + self.action[i][1]
         if next_x > 3 or next_x < 0 or next_y > 3 or next_y < 0:
             next_x, next_y = self.x, self.y
-        return next_x,next_y
-    
+        return next_x, next_y
 
-def nextValueMC(gridworld,episode,idx):
+
+def nextValueMC(gridworld, episode, idx):
     grid = episode[idx]
     temp_episode = episode[idx+1:]
-    for i in range(0,len(temp_episode)):
+    for i in range(0, len(temp_episode)):
         grid.next_sum += temp_episode[i].reward * temp_episode[i].gamma**i
     grid.next_cnt += 1
     grid.next_value = grid.next_sum / grid.next_cnt
-    
+
 
 def generateEpisode(gridworld, episode):
     while episode[-1].action:
-        next_x,next_y = episode[-1].nextGrid()
+        next_x, next_y = episode[-1].nextGrid()
         episode.append(gridworld[next_x][next_y])
 
 
@@ -69,14 +69,15 @@ def firstVisitMC():
     for k in range(100000):
         # generate episode
         episode = [gridworld[randint(0, 3)][randint(0, 3)]]
-        generateEpisode(gridworld,episode)
+        generateEpisode(gridworld, episode)
 
         # next value
         for i in range(4):
             for j in range(4):
                 if gridworld[i][j] in episode:
-                    nextValueMC(gridworld,episode,episode.index(gridworld[i][j]))
-        
+                    nextValueMC(gridworld, episode,
+                                episode.index(gridworld[i][j]))
+
         # update value
         for i in range(4):
             for j in range(4):
@@ -89,27 +90,26 @@ def firstVisitMC():
 
     # show gridworld
     for i in range(4):
-        print([round(gridworld[i][j].value,1) for j in range(4)])
+        print([round(gridworld[i][j].value, 1) for j in range(4)])
 
     # show policy
     for i in range(4):
         print([gridworld[i][j].policy for j in range(4)])
-
 
 
 def everyVisitMC():
     # init gridworld
     gridworld = [[Grid(i, j) for j in range(4)] for i in range(4)]
-    
+
     for k in range(100000):
         # generate episode
         episode = [gridworld[randint(0, 3)][randint(0, 3)]]
-        generateEpisode(gridworld,episode)
+        generateEpisode(gridworld, episode)
 
         # next value
         for idx in range(len(episode)):
-            nextValueMC(gridworld,episode,idx)
-        
+            nextValueMC(gridworld, episode, idx)
+
         # update value
         for i in range(4):
             for j in range(4):
@@ -122,32 +122,33 @@ def everyVisitMC():
 
     # show gridworld
     for i in range(4):
-        print([round(gridworld[i][j].value,1) for j in range(4)])
+        print([round(gridworld[i][j].value, 1) for j in range(4)])
 
     # show policy
     for i in range(4):
         print([gridworld[i][j].policy for j in range(4)])
 
 
-def nextValueTD(gridworld,episode,idx):
+def nextValueTD(gridworld, episode, idx):
     grid = episode[idx]
     next_grid = episode[idx+1]
-    grid.next_value += 0.0001 * (next_grid.reward + next_grid.gamma * next_grid.value - grid.value)
+    grid.next_value += 0.0001 * \
+        (next_grid.reward + next_grid.gamma * next_grid.value - grid.value)
 
 
 def TD0():
     # init gridworld
     gridworld = [[Grid(i, j) for j in range(4)] for i in range(4)]
-    
+
     for k in range(100000):
         # generate episode
         episode = [gridworld[randint(0, 3)][randint(0, 3)]]
-        generateEpisode(gridworld,episode)
+        generateEpisode(gridworld, episode)
 
         # next value
         for idx in range(len(episode)-1):
-            nextValueTD(gridworld,episode,idx)
-        
+            nextValueTD(gridworld, episode, idx)
+
         # update value
         for i in range(4):
             for j in range(4):
@@ -160,7 +161,7 @@ def TD0():
 
     # show gridworld
     for i in range(4):
-        print([round(gridworld[i][j].value,1) for j in range(4)])
+        print([round(gridworld[i][j].value, 1) for j in range(4)])
 
     # show policy
     for i in range(4):
