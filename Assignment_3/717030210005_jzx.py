@@ -5,16 +5,13 @@ class Grid:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        if [self.x, self.y] == [3, 11]:
-            self.action = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-        else:
-            self.action = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        self.action = [(1, 0), (0, 1), (-1, 0), (0, -1)]
         if self.x == 3 and 0 < self.y < 11:
             self.reward = -100.0
         else:
             self.reward = -1.0
         self.gamma = 1.0
-        self.epsilon = 0.1
+        self.epsilon = 0.000001
         self.alpha = 0.3
     
     def nextState(self, gridworld, action):
@@ -58,26 +55,24 @@ def sarsa():
 
     for k1 in range(10000):     # for each episode
         state = gridworld[3][0]
+        # get action using e_greedy
         action = e_greedy(gridworld, Q, state)
         while state != gridworld[3][11]:    # for each step
+            # take action, get next_state, consider cliff region
             if state.x == 3 and 0 < state.y < 11:
                 next_state = gridworld[3][0]
             else:
                 next_state = state.nextState(gridworld, action)
+            # get next_action using e_greedy
             next_action = e_greedy(gridworld, Q, next_state)
             if next_action != (0,0):
+                # update Q using Q's iterative formula
                 Q[state][action] += state.alpha * (state.reward + state.gamma * Q[next_state][next_action] - Q[state][action])
+            # S <= S', A <= A'
             state = next_state
             action = next_action
-    """
-    # show Q
-    for state in Q:
-        print((state.x,state.y),end=': ')
-        for action in state.action:
-            print(round(Q[state][action],3),end='\t')
-        print()
-    """
-    # show policy
+    
+    # show policy, if failed, print "failed!" five times
     print('Sarsa:')
     state = gridworld[3][0]
     episode = [state]
@@ -110,15 +105,20 @@ def q_learning():
     for k1 in range(10000):     # for each episode
         state = gridworld[3][0]
         while state != gridworld[3][11]:    # for each step
+            # choose action using e_greedy
             action = e_greedy(gridworld, Q, state)
+            # take action considering cliff region
             if state.x == 3 and 0 < state.y < 11:
                 next_state = gridworld[3][0]
             else:
                 next_state = state.nextState(gridworld, action)
+            # choose next_action using greedy
             next_action = greedy(gridworld, Q, next_state)
             if next_action != (0,0):
+                # update Q using Q's iterative formula
                 Q[state][action] += state.alpha * (state.reward + state.gamma * Q[next_state][next_action] - Q[state][action])
             state = next_state
+    
     # show policy
     print('Q-learning:')
     state = gridworld[3][0]
