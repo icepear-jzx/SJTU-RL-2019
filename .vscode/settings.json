@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "/home/ice-pear/anaconda3/bin/python",
+    "python.linting.pylintArgs": [
+        "--errors-only",
+        "--generated-members=numpy.* ,torch.* ,cv2.* , cv.*"
+        ]
+}
