@@ -143,31 +143,40 @@ class Agent:
 		# copy parameters from critic to target_critic
 		self.hard_update(self.target_critic, self.critic)
 
+	# get an action with noise
 	def get_exploration_action(self, state):
 		state = torch.Tensor(state)
 		action = self.actor.forward(state).detach()
 		new_action = action + torch.Tensor(self.noise.sample() * self.action_lim)
 		return new_action.numpy()
 
+	# copy parameters from source network to target network
 	def hard_update(self, target, source):
 		for target_param, param in zip(target.parameters(), source.parameters()):
 			target_param.data.copy_(param.data)
 	
+	# target <= tau * source + (1 - tau) * target
 	def soft_update(self, target, source):
 		for target_param, param in zip(target.parameters(), source.parameters()):
 			target_param.data.copy_(target_param.data * (1.0 - self.tau) + param.data * self.tau)
 
+	# update neural network
 	def learn(self):
+		# get a batch of transition from memory
 		s1,a1,r1,s2 = self.memory.sample()
 		s1 = Variable(s1)
 		a1 = Variable(a1)
 		r1 = Variable(r1)
 		s2 = Variable(s2)
 
-		# ---------------------- optimize critic ----------------------
+		# optimize critic net
+		# a2 = mu'(s2)
 		a2 = self.target_actor.forward(s2).detach()
+		# next_val = Q'(s2, a2)
 		next_val = self.target_critic.forward(s2, a2).detach().view(-1)
+		# y = r + gamma * Q'(s2, a2)
 		y_expected = r1 + self.gamma * next_val
+		# y_predicted = Q(s1, a1)
 		y_predicted = self.critic.forward(s1, a1).view(-1)
 		
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
@@ -176,19 +185,21 @@ class Agent:
 		loss_critic.backward()
 		self.critic_optimizer.step()
 
-		# ---------------------- optimize actor ----------------------
+		# optimize actor net
 		pred_a1 = self.actor.forward(s1)
 		loss_actor = -1 * torch.sum(self.critic.forward(s1, pred_a1))
 		self.actor_optimizer.zero_grad()
 		loss_actor.backward()
 		self.actor_optimizer.step()
 
+		# target <= tau * source + (1 - tau) * target
 		self.soft_update(self.target_actor, self.actor)
 		self.soft_update(self.target_critic, self.critic)
 
 
 
 def main():
+	# initialize
 	memory = Memory()
 	agent = Agent(memory)
 	res = []
@@ -197,28 +208,31 @@ def main():
 		state = env.reset()
 		ep_r = 0
 		for steps in range(MAX_STEPS):
-			# if episodes % 10 == 0:
-			# 	env.render()
-
+			# show 1 episode every 10 episodes
+			if episodes % 10 == 0:
+				env.render()
+			# get action
 			action = agent.get_exploration_action(state)
-
+			# take action
 			next_state, reward, _, _ = env.step(action)
-
+			# push transition into memory
 			memory.push(state, action, reward, next_state)
-
+			# start learn after 2 episodes
+			# to fill memory at the beginning
 			if episodes > 2:
 				agent.learn()
-			
+
 			ep_r += reward
 			state = next_state
 		
 		res.append(ep_r)
+		# avg_res is average reward of the last 10 episodes approximately
 		if avg_res:
 			avg_res.append(avg_res[-1] * 0.9 + ep_r * 0.1)
 		else:
 			avg_res.append(ep_r)
 		print("Ep:", episodes, "| Ep_r: %d" % ep_r)
-
+	# draw chart
 	plt.ion()
 	plt.figure()
 	plt.plot(res)
