@@ -146,8 +146,9 @@ class Memory:
         self.batch_size = 32
 
     def push(self, transition):
-        if self.len > self.capacity:
-            self.memory[self.len % self.capacity] = transition
+        if self.len >= self.capacity:
+            self.len = self.len % self.capacity
+            self.memory[self.len] = transition
         else:
             self.len += 1
             self.memory.append(transition)
@@ -235,12 +236,12 @@ while True:
     max_x = -float('inf')
     for n_step in range(1, env.max_step + 1):
         # get action using e-greedy policy
-        action = agent.get_action(state)
+        action = agent.get_action(state, e_greedy=(success_count < 100))
         # take action
         next_state , reward , done, _ = env.step(action)
 
         # update max_x
-        if max_x < next_state[0]:
+        if max_x < next_state[0] and n_step <= 200:
             max_x = next_state[0]
 
         # push the new transition into memory
@@ -248,12 +249,13 @@ while True:
         # state <= next_state
         state = next_state
         
+        if success_count <= 500:
         # update net every 4 steps
-        if global_n_step % agent.learn_interval == 0:
-            agent.learn(memory)
-        # update target_net every 5 steps
-        if global_n_step % agent.target_update_interval == 0:
-            agent.target_update()
+            if global_n_step % agent.learn_interval == 0:
+                agent.learn(memory)
+            # update target_net every 5 steps
+            if global_n_step % agent.target_update_interval == 0:
+                agent.target_update()
         
         if done or n_step >= env.max_step:
             # if succeed
@@ -262,13 +264,13 @@ while True:
                 success_count += 1
                 success_total += 1
                 rate = success_total / n_episode
-                print("Episode: {}   Success: {}   Success rate: {}".format(n_episode,success_count,rate))
+                print("Episode: {}   Success: {}   Step: {}   Success rate: {}".format(n_episode,success_count,n_step,rate))
             # if fail
             else:
                 success_count = 0
                 fail_count += 1
                 rate = success_total / n_episode
-                print("Episode: {}   Fail: {}   Success rate: {}".format(n_episode,fail_count,rate))
+                print("Episode: {}   Fail: {}   Step: {}   Success rate: {}".format(n_episode,fail_count,n_step,rate))
             episode_xs.append(max_x)
             success_rate.append(rate)
             # draw
@@ -283,8 +285,8 @@ while True:
             plt.pause(0.001)
             break
     # show every 50 episodes
-    if n_episode % agent.show_interval == 0:
-        show()
+    # if n_episode % agent.show_interval == 0:
+    #     show()
 
 plt.ioff()
 plt.show()
